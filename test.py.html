@@ -1,0 +1,133 @@
+<html>
+<head>
+<title>test.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+.s6 { color: #5f826b; font-style: italic;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+test.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">import </span><span class="s1">pyautogui</span>
+<span class="s0">import </span><span class="s1">win32api</span><span class="s2">, </span><span class="s1">win32con</span>
+<span class="s0">import </span><span class="s1">win32gui</span>
+<span class="s0">import </span><span class="s1">cv2</span>
+<span class="s0">import </span><span class="s1">time</span>
+<span class="s0">from </span><span class="s1">ultralytics </span><span class="s0">import </span><span class="s1">YOLO</span>
+
+<span class="s3"># Configuration</span>
+<span class="s1">MODEL_PATH </span><span class="s2">= </span><span class="s4">'yolov8s.pt'  </span><span class="s3"># Path to the YOLOv8 model</span>
+<span class="s1">NO_DETECTION_ZONE </span><span class="s2">= (</span><span class="s5">0</span><span class="s2">, </span><span class="s5">0</span><span class="s2">, </span><span class="s5">400</span><span class="s2">, </span><span class="s5">300</span><span class="s2">)  </span><span class="s3"># (x, y, width, height)</span>
+<span class="s1">DETECTION_CONFIDENCE_THRESHOLD </span><span class="s2">= </span><span class="s5">0.7</span>
+<span class="s1">DETECTION_DELAY </span><span class="s2">= </span><span class="s5">1.0</span>
+
+<span class="s3"># Load the YOLO model</span>
+<span class="s0">try</span><span class="s2">:</span>
+    <span class="s1">model </span><span class="s2">= </span><span class="s1">YOLO</span><span class="s2">(</span><span class="s1">MODEL_PATH</span><span class="s2">)</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;Model loaded successfully.&quot;</span><span class="s2">)</span>
+<span class="s0">except </span><span class="s1">Exception </span><span class="s0">as </span><span class="s1">e</span><span class="s2">:</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;Failed to load model: </span><span class="s0">{</span><span class="s1">e</span><span class="s0">}</span><span class="s4">&quot;</span><span class="s2">)</span>
+
+
+<span class="s0">def </span><span class="s1">get_window_rect</span><span class="s2">(</span><span class="s1">window_name</span><span class="s2">):</span>
+    <span class="s6">&quot;&quot;&quot;Get the rectangle of the specified window.&quot;&quot;&quot;</span>
+    <span class="s1">hwnd </span><span class="s2">= </span><span class="s1">win32gui</span><span class="s2">.</span><span class="s1">FindWindow</span><span class="s2">(</span><span class="s0">None</span><span class="s2">, </span><span class="s1">window_name</span><span class="s2">)</span>
+    <span class="s0">if </span><span class="s1">hwnd</span><span class="s2">:</span>
+        <span class="s0">return </span><span class="s1">win32gui</span><span class="s2">.</span><span class="s1">GetWindowRect</span><span class="s2">(</span><span class="s1">hwnd</span><span class="s2">)</span>
+    <span class="s0">else</span><span class="s2">:</span>
+        <span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;Window '</span><span class="s0">{</span><span class="s1">window_name</span><span class="s0">}</span><span class="s4">' not found.&quot;</span><span class="s2">)</span>
+        <span class="s0">return None</span>
+
+
+<span class="s0">def </span><span class="s1">move_mouse_to_center</span><span class="s2">(</span><span class="s1">x1</span><span class="s2">, </span><span class="s1">y1</span><span class="s2">, </span><span class="s1">x2</span><span class="s2">, </span><span class="s1">y2</span><span class="s2">):</span>
+    <span class="s6">&quot;&quot;&quot;Move the mouse to the center of the bounding box.&quot;&quot;&quot;</span>
+    <span class="s1">center_x </span><span class="s2">= </span><span class="s1">int</span><span class="s2">((</span><span class="s1">x1 </span><span class="s2">+ </span><span class="s1">x2</span><span class="s2">) / </span><span class="s5">2</span><span class="s2">)</span>
+    <span class="s1">center_y </span><span class="s2">= </span><span class="s1">int</span><span class="s2">((</span><span class="s1">y1 </span><span class="s2">+ </span><span class="s1">y2</span><span class="s2">) / </span><span class="s5">2</span><span class="s2">)</span>
+
+    <span class="s3"># Move the mouse</span>
+    <span class="s1">win32api</span><span class="s2">.</span><span class="s1">SetCursorPos</span><span class="s2">((</span><span class="s1">center_x</span><span class="s2">, </span><span class="s1">center_y</span><span class="s2">))</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;Moved mouse to (</span><span class="s0">{</span><span class="s1">center_x</span><span class="s0">}</span><span class="s4">, </span><span class="s0">{</span><span class="s1">center_y</span><span class="s0">}</span><span class="s4">)&quot;</span><span class="s2">)</span>
+
+
+<span class="s0">def </span><span class="s1">detection_loop</span><span class="s2">():</span>
+    <span class="s1">window_name </span><span class="s2">= </span><span class="s4">'Snipping Tool'  </span><span class="s3"># Change this to the window you want to capture</span>
+    <span class="s1">rect </span><span class="s2">= </span><span class="s1">get_window_rect</span><span class="s2">(</span><span class="s1">window_name</span><span class="s2">)</span>
+
+    <span class="s0">if not </span><span class="s1">rect</span><span class="s2">:</span>
+        <span class="s0">return</span>
+
+    <span class="s1">region </span><span class="s2">= (</span><span class="s1">rect</span><span class="s2">[</span><span class="s5">0</span><span class="s2">], </span><span class="s1">rect</span><span class="s2">[</span><span class="s5">1</span><span class="s2">], </span><span class="s1">rect</span><span class="s2">[</span><span class="s5">2</span><span class="s2">] - </span><span class="s1">rect</span><span class="s2">[</span><span class="s5">0</span><span class="s2">], </span><span class="s1">rect</span><span class="s2">[</span><span class="s5">3</span><span class="s2">] - </span><span class="s1">rect</span><span class="s2">[</span><span class="s5">1</span><span class="s2">])  </span><span class="s3"># (x, y, width, height)</span>
+
+    <span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;Starting detection loop...&quot;</span><span class="s2">)</span>
+    <span class="s0">while True</span><span class="s2">:</span>
+        <span class="s3"># Get a screenshot of the specified region</span>
+        <span class="s1">frame </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">array</span><span class="s2">(</span><span class="s1">pyautogui</span><span class="s2">.</span><span class="s1">screenshot</span><span class="s2">(</span><span class="s1">region</span><span class="s2">=</span><span class="s1">region</span><span class="s2">))</span>
+        <span class="s1">frame_height</span><span class="s2">, </span><span class="s1">frame_width </span><span class="s2">= </span><span class="s1">frame</span><span class="s2">.</span><span class="s1">shape</span><span class="s2">[:</span><span class="s5">2</span><span class="s2">]</span>
+
+        <span class="s3"># Run detection</span>
+        <span class="s1">results </span><span class="s2">= </span><span class="s1">model</span><span class="s2">(</span><span class="s1">frame</span><span class="s2">)</span>
+        <span class="s1">detections </span><span class="s2">= </span><span class="s1">results</span><span class="s2">[</span><span class="s5">0</span><span class="s2">].</span><span class="s1">boxes</span><span class="s2">.</span><span class="s1">xyxy</span><span class="s2">.</span><span class="s1">cpu</span><span class="s2">().</span><span class="s1">numpy</span><span class="s2">()</span>
+        <span class="s1">confidences </span><span class="s2">= </span><span class="s1">results</span><span class="s2">[</span><span class="s5">0</span><span class="s2">].</span><span class="s1">boxes</span><span class="s2">.</span><span class="s1">conf</span><span class="s2">.</span><span class="s1">cpu</span><span class="s2">().</span><span class="s1">numpy</span><span class="s2">()</span>
+
+        <span class="s3"># Draw the no-detection zone (red box)</span>
+        <span class="s1">x</span><span class="s2">, </span><span class="s1">y</span><span class="s2">, </span><span class="s1">w</span><span class="s2">, </span><span class="s1">h </span><span class="s2">= </span><span class="s1">NO_DETECTION_ZONE</span>
+        <span class="s1">cv2</span><span class="s2">.</span><span class="s1">rectangle</span><span class="s2">(</span><span class="s1">frame</span><span class="s2">, (</span><span class="s1">x</span><span class="s2">, </span><span class="s1">y</span><span class="s2">), (</span><span class="s1">x </span><span class="s2">+ </span><span class="s1">w</span><span class="s2">, </span><span class="s1">y </span><span class="s2">+ </span><span class="s1">h</span><span class="s2">), (</span><span class="s5">0</span><span class="s2">, </span><span class="s5">0</span><span class="s2">, </span><span class="s5">255</span><span class="s2">), </span><span class="s5">2</span><span class="s2">)</span>
+
+        <span class="s3"># Check detections</span>
+        <span class="s0">for </span><span class="s1">detection</span><span class="s2">, </span><span class="s1">confidence </span><span class="s0">in </span><span class="s1">zip</span><span class="s2">(</span><span class="s1">detections</span><span class="s2">, </span><span class="s1">confidences</span><span class="s2">):</span>
+            <span class="s0">if </span><span class="s1">confidence </span><span class="s2">&lt; </span><span class="s1">DETECTION_CONFIDENCE_THRESHOLD</span><span class="s2">:</span>
+                <span class="s0">continue</span>
+
+            <span class="s1">x1</span><span class="s2">, </span><span class="s1">y1</span><span class="s2">, </span><span class="s1">x2</span><span class="s2">, </span><span class="s1">y2 </span><span class="s2">= </span><span class="s1">map</span><span class="s2">(</span><span class="s1">int</span><span class="s2">, </span><span class="s1">detection</span><span class="s2">)  </span><span class="s3"># Get coordinates of the bounding box</span>
+            <span class="s1">center_x </span><span class="s2">= </span><span class="s1">int</span><span class="s2">((</span><span class="s1">x1 </span><span class="s2">+ </span><span class="s1">x2</span><span class="s2">) / </span><span class="s5">2</span><span class="s2">)</span>
+            <span class="s1">center_y </span><span class="s2">= </span><span class="s1">int</span><span class="s2">((</span><span class="s1">y1 </span><span class="s2">+ </span><span class="s1">y2</span><span class="s2">) / </span><span class="s5">2</span><span class="s2">)</span>
+
+            <span class="s3"># Skip if the detection is within the no-detection zone</span>
+            <span class="s0">if </span><span class="s1">NO_DETECTION_ZONE</span><span class="s2">[</span><span class="s5">0</span><span class="s2">] &lt; </span><span class="s1">center_x </span><span class="s2">&lt; </span><span class="s1">NO_DETECTION_ZONE</span><span class="s2">[</span><span class="s5">0</span><span class="s2">] + </span><span class="s1">NO_DETECTION_ZONE</span><span class="s2">[</span><span class="s5">2</span><span class="s2">] </span><span class="s0">and </span><span class="s1">\</span>
+                    <span class="s1">NO_DETECTION_ZONE</span><span class="s2">[</span><span class="s5">1</span><span class="s2">] &lt; </span><span class="s1">center_y </span><span class="s2">&lt; </span><span class="s1">NO_DETECTION_ZONE</span><span class="s2">[</span><span class="s5">1</span><span class="s2">] + </span><span class="s1">NO_DETECTION_ZONE</span><span class="s2">[</span><span class="s5">3</span><span class="s2">]:</span>
+                <span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;Detection at (</span><span class="s0">{</span><span class="s1">center_x</span><span class="s0">}</span><span class="s4">, </span><span class="s0">{</span><span class="s1">center_y</span><span class="s0">}</span><span class="s4">) inside no-detection zone. Ignoring.&quot;</span><span class="s2">)</span>
+                <span class="s0">continue</span>
+
+            <span class="s3"># Draw detection box (green)</span>
+            <span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;Detected object at (</span><span class="s0">{</span><span class="s1">x1</span><span class="s0">}</span><span class="s4">, </span><span class="s0">{</span><span class="s1">y1</span><span class="s0">}</span><span class="s4">) with confidence </span><span class="s0">{</span><span class="s1">confidence</span><span class="s0">:</span><span class="s4">.2f</span><span class="s0">}</span><span class="s4">. Center: (</span><span class="s0">{</span><span class="s1">center_x</span><span class="s0">}</span><span class="s4">, </span><span class="s0">{</span><span class="s1">center_y</span><span class="s0">}</span><span class="s4">)&quot;</span><span class="s2">)</span>
+            <span class="s1">cv2</span><span class="s2">.</span><span class="s1">rectangle</span><span class="s2">(</span><span class="s1">frame</span><span class="s2">, (</span><span class="s1">x1</span><span class="s2">, </span><span class="s1">y1</span><span class="s2">), (</span><span class="s1">x2</span><span class="s2">, </span><span class="s1">y2</span><span class="s2">), (</span><span class="s5">0</span><span class="s2">, </span><span class="s5">255</span><span class="s2">, </span><span class="s5">0</span><span class="s2">), </span><span class="s5">2</span><span class="s2">)</span>
+            <span class="s1">cv2</span><span class="s2">.</span><span class="s1">putText</span><span class="s2">(</span><span class="s1">frame</span><span class="s2">, </span><span class="s4">f&quot;Conf: </span><span class="s0">{</span><span class="s1">confidence</span><span class="s0">:</span><span class="s4">.2f</span><span class="s0">}</span><span class="s4">&quot;</span><span class="s2">, (</span><span class="s1">x1</span><span class="s2">, </span><span class="s1">y1 </span><span class="s2">- </span><span class="s5">10</span><span class="s2">), </span><span class="s1">cv2</span><span class="s2">.</span><span class="s1">FONT_HERSHEY_SIMPLEX</span><span class="s2">, </span><span class="s5">0.5</span><span class="s2">, (</span><span class="s5">0</span><span class="s2">, </span><span class="s5">255</span><span class="s2">, </span><span class="s5">0</span><span class="s2">), </span><span class="s5">2</span><span class="s2">)</span>
+
+            <span class="s3"># Move mouse to the center of the detected bounding box</span>
+            <span class="s1">move_mouse_to_center</span><span class="s2">(</span><span class="s1">x1</span><span class="s2">, </span><span class="s1">y1</span><span class="s2">, </span><span class="s1">x2</span><span class="s2">, </span><span class="s1">y2</span><span class="s2">)</span>
+
+        <span class="s3"># Convert frame color for display</span>
+        <span class="s1">frame </span><span class="s2">= </span><span class="s1">cv2</span><span class="s2">.</span><span class="s1">cvtColor</span><span class="s2">(</span><span class="s1">frame</span><span class="s2">, </span><span class="s1">cv2</span><span class="s2">.</span><span class="s1">COLOR_BGR2RGB</span><span class="s2">)</span>
+
+        <span class="s3"># Display the frame in a window</span>
+        <span class="s1">cv2</span><span class="s2">.</span><span class="s1">imshow</span><span class="s2">(</span><span class="s4">&quot;Detection&quot;</span><span class="s2">, </span><span class="s1">frame</span><span class="s2">)</span>
+
+        <span class="s3"># Break the loop if the user presses 'q'</span>
+        <span class="s0">if </span><span class="s1">cv2</span><span class="s2">.</span><span class="s1">waitKey</span><span class="s2">(</span><span class="s5">1</span><span class="s2">) &amp; </span><span class="s5">0xFF </span><span class="s2">== </span><span class="s1">ord</span><span class="s2">(</span><span class="s4">'q'</span><span class="s2">):</span>
+            <span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;Exiting detection loop.&quot;</span><span class="s2">)</span>
+            <span class="s0">break</span>
+
+        <span class="s3"># Sleep for the specified delay</span>
+        <span class="s1">time</span><span class="s2">.</span><span class="s1">sleep</span><span class="s2">(</span><span class="s1">DETECTION_DELAY</span><span class="s2">)</span>
+
+    <span class="s3"># Cleanup</span>
+    <span class="s1">cv2</span><span class="s2">.</span><span class="s1">destroyAllWindows</span><span class="s2">()</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;Detection loop terminated.&quot;</span><span class="s2">)</span>
+
+
+<span class="s0">if </span><span class="s1">__name__ </span><span class="s2">== </span><span class="s4">&quot;__main__&quot;</span><span class="s2">:</span>
+    <span class="s1">detection_loop</span><span class="s2">()</span>
+</pre>
+</body>
+</html>
